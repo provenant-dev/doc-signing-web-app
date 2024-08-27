@@ -1,3 +1,5 @@
+'use client'
+
 import * as React from 'react'
 import type { Viewport } from 'next'
 
@@ -6,7 +8,10 @@ import '@/styles/global.css'
 // import { ThemeProvider } from '@mui/material/styles';
 import { ThemeProvider } from '@/components/core/theme-provider/theme-provider'
 
-export const viewport = { width: 'device-width', initialScale: 1 } satisfies Viewport
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1
+} satisfies Viewport
 
 interface LayoutProps {
   children: React.ReactNode

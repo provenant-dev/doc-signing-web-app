@@ -12,7 +12,9 @@ export interface ThemeProviderProps {
   children: React.ReactNode
 }
 
-export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Element {
+export function ThemeProvider({
+  children
+}: ThemeProviderProps): React.JSX.Element {
   const theme = createTheme()
 
   return (

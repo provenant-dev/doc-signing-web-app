@@ -3,7 +3,10 @@
 import * as React from 'react'
 import { useServerInsertedHTML } from 'next/navigation'
 import createCache from '@emotion/cache'
-import type { EmotionCache, Options as OptionsOfCreateCache } from '@emotion/cache'
+import type {
+  EmotionCache,
+  Options as OptionsOfCreateCache
+} from '@emotion/cache'
 import { CacheProvider as DefaultCacheProvider } from '@emotion/react'
 
 interface Registry {
@@ -13,12 +16,17 @@ interface Registry {
 
 export interface NextAppDirEmotionCacheProviderProps {
   options: Omit<OptionsOfCreateCache, 'insertionPoint'>
-  CacheProvider?: (props: { value: EmotionCache; children: React.ReactNode }) => React.JSX.Element | null
+  CacheProvider?: (props: {
+    value: EmotionCache
+    children: React.ReactNode
+  }) => React.JSX.Element | null
   children: React.ReactNode
 }
 
 // Adapted from https://github.com/garronej/tss-react/blob/main/src/next/appDir.tsx
-export default function NextAppDirEmotionCacheProvider(props: NextAppDirEmotionCacheProviderProps): React.JSX.Element {
+export default function NextAppDirEmotionCacheProvider(
+  props: NextAppDirEmotionCacheProviderProps
+): React.JSX.Element {
   const { options, CacheProvider = DefaultCacheProvider, children } = props
 
   const [registry] = React.useState<Registry>(() => {
@@ -79,7 +87,12 @@ export default function NextAppDirEmotionCacheProvider(props: NextAppDirEmotionC
             />
           )
         )}
-        {styles ? <style dangerouslySetInnerHTML={{ __html: styles }} data-emotion={dataEmotionAttribute} /> : null}
+        {styles ? (
+          <style
+            dangerouslySetInnerHTML={{ __html: styles }}
+            data-emotion={dataEmotionAttribute}
+          />
+        ) : null}
       </React.Fragment>
     )
   })

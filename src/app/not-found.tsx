@@ -11,18 +11,33 @@ import { config } from '@/config'
 import { paths } from '@/paths'
 import { basePath } from '@/next.config'
 
-export const metadata = { title: `Not found | ${config.site.name}` } satisfies Metadata
+export const metadata = {
+  title: `Not found | ${config.site.name}`
+} satisfies Metadata
 
 export default function NotFound(): React.JSX.Element {
   return (
-    <Box component="main" sx={{ alignItems: 'center', display: 'flex', justifyContent: 'center', minHeight: '100%' }}>
+    <Box
+      component="main"
+      sx={{
+        alignItems: 'center',
+        display: 'flex',
+        justifyContent: 'center',
+        minHeight: '100%'
+      }}
+    >
       <Stack spacing={3} sx={{ alignItems: 'center', maxWidth: 'md' }}>
         <Box>
           <Box
             component="img"
             src={`${basePath}/assets/error-404.png`}
             alt="Under development"
-            sx={{ display: 'inline-block', height: 'auto', maxWidth: '100%', width: '400px' }}
+            sx={{
+              display: 'inline-block',
+              height: 'auto',
+              maxWidth: '100%',
+              width: '400px'
+            }}
           />
         </Box>
         <Typography variant="h3" sx={{ textAlign: 'center' }}>

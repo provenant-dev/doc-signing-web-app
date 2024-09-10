@@ -3,7 +3,7 @@
 Application to verify documents using Keripy, based on [GLEIF-IT/vlei-verifier](https://github.com/GLEIF-IT/vlei-verifier), which uses the Falcon framework in Python
 
 ### overview
-To verify an aBesta:on ACDC, the user must upload both the document and its CESR file as a single zip file. The verifier server will check that (1) all KERI data are valid and (2) the digest of the document matches the digest in the aBesta:on ACDC.
+To verify an attestation ACDC, the user must upload both the document and its CESR file as a single zip file. The verifier server will check that (1) all KERI data are valid and (2) the digest of the document matches the digest in the attestation ACDC.
 
 
 ## Architecture
@@ -29,21 +29,6 @@ docker-compose down
 docker-compose up deps
 ```
 
-### API
+### Verification API
 
-### Verify an Attestation ACDC:
 To verify an attestation ACDC, the user must upload both the document and its CESR file as a single zip file to the POST `/attestaion/verify/{said}` API. The verifier server will check that (1) all KERI data are valid and (2) the digest of the document matches the digest in the attestation ACDC.  
-
-
-## Peer projects
-### Document Signer App
-
-Application to sign documents using Signify Browser Extension. This is a Next.js project bootstrapped with create-next-app and uses Material UI component library:
-
-See: [web-signer]()
-
-### Attestaion Public-schema
-
-
-See: [public-schema](https://github.com/provenant-dev/public-schema/tree/attestation-schema)
-

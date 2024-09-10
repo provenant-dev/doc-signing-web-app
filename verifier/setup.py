@@ -58,9 +58,6 @@ setup(
         # 'Programming Language :: Python :: Implementation :: Stackless',
         'Topic :: Utilities',
     ],
-    project_urls={
-        'Issue Tracker': 'https://github.com/GLEIF-IT/vlei-verifier/issues',
-    },
     keywords=[
         "secure attribution",
         "authentic data",

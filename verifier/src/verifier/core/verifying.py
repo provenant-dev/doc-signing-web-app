@@ -3,7 +3,6 @@ import json
 import falcon
 from keri.core import coring, parsing
 from keri.vdr import verifying, eventing
-from verifier.core.authorizing import Schema
 
 
 def setup(app, hby, vdb, reger, local=False):

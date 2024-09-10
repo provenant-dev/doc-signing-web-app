@@ -14,7 +14,7 @@ from keri.app import keeping, configing, habbing, oobiing
 from keri.app.cli.common import existing
 from keri.vdr import viring
 import logging
-from verifier.core import verifying, authorizing, basing, reporting
+from verifier.core import verifying, basing
 
 parser = argparse.ArgumentParser(description='Launch vLEI Verification Service')
 parser.set_defaults(handler=lambda args: launch(args),
@@ -97,10 +97,8 @@ def launch(args):
     httpServerDoer = http.ServerDoer(server=server)
 
     verifying.setup(app, hby=hby, vdb=vdb, reger=reger)
-    reportDoers = reporting.setup(app=app, hby=hby, vdb=vdb)
-    authDoers = authorizing.setup(hby, vdb=vdb, reger=reger, cf=cf)
 
-    doers = obl.doers + authDoers + reportDoers + [hbyDoer, httpServerDoer]
+    doers = obl.doers + [hbyDoer, httpServerDoer]
 
     print(f"vLEI Verification Service running and listening on: {httpPort}")
     return doers

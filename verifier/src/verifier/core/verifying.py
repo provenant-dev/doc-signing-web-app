@@ -2,6 +2,8 @@ import json
 
 import os
 import falcon
+import zipfile
+import datetime
 from keri.vdr import verifying, eventing
 
 
@@ -73,12 +75,76 @@ class AttestationVerifierResource:
     def on_post(self, req, rep):
         # get incoming file
         try:
+            incoming_file = req.get_param("file")
+            if incoming_file is None:
+                rep.status = falcon.HTTP_BAD_REQUEST
+                rep.data = json.dumps(dict(msg="No file was uploaded")).encode("utf-8")
+                return
+            
+            # Save uploaded file
+            file_path = self._save_uploaded_zip(incoming_file)
+            
+            # Extract ZIP file
+            files = self._extract(file_path)
+
+            # ZIP not valid
+            if not files:   
+                rep.status = falcon.HTTP_BAD_REQUEST
+                rep.data = json.dumps(dict(msg="The ZIP file is not valid")).encode("utf-8")
+                return
+
             rep.status = falcon.HTTP_ACCEPTED
             rep.data = json.dumps(dict(msg=f"the document is a valid")).encode("utf-8")
+
             return 
         except Exception as e:
-            raise falcon.HTTPBadRequest("Error", str(e))
+            rep.status = falcon.HTTP_BAD_REQUEST
+            rep.data = json.dumps(dict(msg=str(e))).encode("utf-8")
+        
+    def _extract(self, zip_path):
+        try:
+            files = []
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                file_list = zip_ref.infolist()  # Get the list of files in the ZIP
 
+                # The ZIP file must contain a CESR file.
+                cesr_files = [file for file in file_list if file.filename.endswith('.cesr')]
+                if not cesr_files :
+                    return False
+                # The ZIP file must contain exactly two or three files.
+                if len(file_list) < 2  or len(file_list) > 3:
+                    return False
+
+                for file_info in file_list:
+                    # Define the path to save the extracted PDF
+                    path = os.path.join(self.upload_dir, file_info.filename)
+                    # Extract and save the PDF file
+                    with open(path, 'wb') as file:
+                        file.write(zip_ref.read(file_info.filename))
+                    files.append(file_info.filename)
+
+                # Clean up the uploaded ZIP file
+                os.remove(zip_path)
+
+            return files
+        except Exception as e:
+            raise falcon.HTTPBadRequest(str(e))
+         
+    def _save_uploaded_zip(self, incoming_file):
+        """ Save the uploaded file to disk and return its path """
+        try:
+            img_id = str(int(datetime.datetime.now().timestamp() * 1000))
+            filename = f"{img_id}.{incoming_file.filename.split('.')[-1]}"
+            file_path = os.path.join(self.upload_dir, filename)
+
+            temp_file_path = file_path + "~"
+            with open(temp_file_path, "wb") as f:
+                f.write(incoming_file.file.read())
+            os.rename(temp_file_path, file_path)
+
+            return file_path
+        except Exception as e:
+            raise falcon.HTTPBadRequest(str(e))
         
 class HealthEndpoint:
     def __init__(self):

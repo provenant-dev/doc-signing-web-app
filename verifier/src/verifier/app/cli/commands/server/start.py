@@ -15,6 +15,7 @@ from keri.app.cli.common import existing
 from keri.vdr import viring
 import logging
 from verifier.core import verifying, basing
+from falcon_multipart.middleware import MultipartMiddleware
 
 parser = argparse.ArgumentParser(description='Launch vLEI Verification Service')
 parser.set_defaults(handler=lambda args: launch(args),
@@ -88,10 +89,12 @@ def launch(args):
     vdb = basing.VerifierBaser(name=hby.name)
 
     app = falcon.App(
-        middleware=falcon.CORSMiddleware(
+        middleware=[falcon.CORSMiddleware(
             allow_origins='*',
             allow_credentials='*',
-            expose_headers=['cesr-attachment', 'cesr-date', 'content-type']))
+            expose_headers=['cesr-attachment', 'cesr-date', 'content-type']),
+            MultipartMiddleware(),
+            ])
 
     server = http.Server(port=httpPort, app=app)
     httpServerDoer = http.ServerDoer(server=server)

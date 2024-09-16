@@ -75,6 +75,7 @@ setup(
         'dataclasses_json>=0.5.7',
         'apispec>=6.3.0',
         'requests>=2.31.0',
+        'falcon-multipart>=0.2.0',
     ],
     extras_require={
         # eg:

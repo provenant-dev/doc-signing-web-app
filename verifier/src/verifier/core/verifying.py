@@ -5,6 +5,8 @@ import falcon
 import zipfile
 import datetime
 from keri.vdr import verifying, eventing
+from keri.core import coring, parsing
+from keri.core.coring import MtrDex, Diger
 
 
 def setup(app, hby, vdb, reger, local=False):
@@ -81,6 +83,10 @@ class AttestationVerifierResource:
                 rep.data = json.dumps(dict(msg="No file was uploaded")).encode("utf-8")
                 return
             
+            # get said from the zip file name
+            # ex. examplezip-digest=EA2bjWRaF3Hk0e1x1hV5SbD_01APHYOg2oeeRNr8HVq1.zip 
+            # EA2bjWRaF3Hk0e1x1hV5SbD_01APHYOg2oeeRNr8HVq1
+            said = incoming_file.filename.split("-digest=")[1].split(".zip")[0]
             # Save uploaded file
             file_path = self._save_uploaded_zip(incoming_file)
             
@@ -93,6 +99,20 @@ class AttestationVerifierResource:
                 rep.data = json.dumps(dict(msg="The ZIP file is not valid")).encode("utf-8")
                 return
 
+            if not self._verify_credential(files["cesr_file"], said, rep):
+                rep.status = falcon.HTTP_BAD_REQUEST
+                rep.data = json.dumps(dict(msg=f"Credential {said} was not found")).encode("utf-8")
+                return
+            
+            saider = coring.Saider(qb64=said)
+            now = coring.Dater()
+            self.vdb.iss.pin(keys=(saider.qb64,), val=now)     
+
+            if not self._verify_document_hash(saider, files["document_file"], rep, said):
+                rep.status = falcon.HTTP_BAD_REQUEST
+                rep.data = json.dumps(dict(msg=f"Document hash does not match digest")).encode("utf-8")
+                return            
+            
             rep.status = falcon.HTTP_ACCEPTED
             rep.data = json.dumps(dict(msg=f"the document is a valid")).encode("utf-8")
 
@@ -100,7 +120,59 @@ class AttestationVerifierResource:
         except Exception as e:
             rep.status = falcon.HTTP_BAD_REQUEST
             rep.data = json.dumps(dict(msg=str(e))).encode("utf-8")
+
+    def _verify_credential(self, file_path, said, rep):
+        """ Verify the credential by SAID """
+        try:
+            with open(file_path, "rb") as f:
+                ims = f.read()
+
+            self.vry.cues.clear()
+            parsing.Parser().parse(ims=ims, kvy=self.hby.kvy, tvy=self.tvy, vry=self.vry)
+            found = False
+            while self.vry.cues:
+                msg = self.vry.cues.popleft()
+                if "creder" in msg:
+                    creder = msg["creder"]
+                    if creder.said == said:
+                        found = True
+            
+            # Clean up the uploaded CESR file
+            os.remove(file_path)
+            return found
+
+        except Exception as e:
+            os.remove(file_path)
+            raise falcon.HTTPBadRequest("Credential Verification Error", str(e))
         
+    def _verify_document_hash(self, saider, document_path, rep, said):
+        """ Verify the hash of the uploaded document against the credential digest """
+        try:
+            with open(document_path, "rb") as f:
+                document = f.read()
+
+            # Convert the hash to qb64 format using KERI's Diger class
+            document_matter = Diger(raw=document, code=MtrDex.Blake3_256)
+
+            # Get the qb64 encoded hash
+            document_qb64 = document_matter.qb64
+
+            os.remove(document_path)
+
+            # Get the digest from the credential by SAID
+            creder = self.vry.reger.creds.get(keys=(saider.qb64,))
+            attrib_data = creder.attrib
+            digest = attrib_data["digest"]
+
+            # compare document hash with digest
+            if document_qb64 != digest:
+                return False
+            return True
+
+        except Exception as e:
+            os.remove(document_path)
+            raise falcon.HTTPBadRequest("Document Hash Error", str(e))           
+                
     def _extract(self, zip_path):
         try:
             files = []
@@ -114,10 +186,24 @@ class AttestationVerifierResource:
                 # The ZIP file must contain exactly two or three files.
                 if len(file_list) < 2  or len(file_list) > 3:
                     return False
+                
+                # Initialize a dictionary to store the file paths
+                extracted_files = {"readme_file": None, "cesr_file": None, "document_file": None}
 
+                # Loop through the files to identify them
                 for file_info in file_list:
+                    filename = file_info.filename
                     # Define the path to save the extracted PDF
                     path = os.path.join(self.upload_dir, file_info.filename)
+                
+                    # Identify the file type
+                    if filename.endswith('.txt'):
+                        extracted_files["readme_file"] = path
+                    elif filename.endswith('.cesr'):
+                        extracted_files["cesr_file"] = path
+                    else:
+                        extracted_files["document_file"] = path # The unknown type file
+
                     # Extract and save the PDF file
                     with open(path, 'wb') as file:
                         file.write(zip_ref.read(file_info.filename))
@@ -126,7 +212,7 @@ class AttestationVerifierResource:
                 # Clean up the uploaded ZIP file
                 os.remove(zip_path)
 
-            return files
+            return extracted_files
         except Exception as e:
             raise falcon.HTTPBadRequest(str(e))
          

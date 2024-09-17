@@ -180,6 +180,9 @@ const App: React.FC = () => {
       }
       const credSAID = attestCredResult?.acdc?._ked?.d
       const zip = new JSZip();
+      // name without suffix
+      // ex. example.zip => example
+      const documentName = document.name.split('.').slice(0, -1).join('.');
       zip.file(`${document.name}.cesr`, cred);
       zip.file(document.name, document);
 
@@ -188,7 +191,7 @@ const App: React.FC = () => {
       const url = window.URL.createObjectURL(content);
       const link = window.document.createElement('a');
       link.href = url;
-      link.download = `${document.name}-digest=${credSAID}.zip`;
+      link.download = `${documentName}-digest=${credSAID}.zip`;
       link.click();
       window.URL.revokeObjectURL(url);
 
@@ -215,15 +218,16 @@ const App: React.FC = () => {
   const handleVerification = async () => {
     setIsVerifying(true);
     setVerificationResult(null);
-    // This is a placeholder and should be implemented based on your specific verification process
-
+    
     if (!verificationZip) {
       setVerificationResult('No zip file uploaded');
       setIsVerifying(false);
       return;
     }
-    // get the name of the zip file without .zip
-    const zipFileName = verificationZip?.name?.split('.').slice(0, -1).join('.');
+    // get the name of the zip file after digest= andwithout .zip
+    // examplezip-digest=EA2bjWRaF3Hk0e1x1hV5SbD_01APHYOg2oeeRNr8HVq1.zip 
+    // => EA2bjWRaF3Hk0e1x1hV5SbD_01APHYOg2oeeRNr8HVq1
+    const zipFileName = verificationZip?.name?.split('digest=').slice(-1)[0].split('.').slice(0, -1)[0];
     if (!zipFileName) {
       setVerificationResult('No zip file uploaded');
       setIsVerifying(false);

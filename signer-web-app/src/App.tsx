@@ -2,10 +2,11 @@ import './App.css';
 import JSZip from 'jszip';
 import React, { useState, useRef, FormEvent, useEffect } from 'react';
 import { Upload, Download, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { createClient, CreateCredentialResult, ExtensionClient } from 'signify-polaris-web';
+import { AuthorizeResult, createClient, CreateCredentialResult, ExtensionClient } from 'signify-polaris-web';
+import { Diger, MtrDex } from 'signify-ts';
 
 // change the verifier endpoint as needed
-const verifier_endpoint = "http://localhost:7676/verify-attestation/"
+const verifier_endpoint = "http://localhost:7676/verify-attestation"
 
 // Define types for props
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -61,6 +62,7 @@ const App: React.FC = () => {
   const documentInputRef = useRef<HTMLInputElement | null>(null);
   const verificationZipInputRef = useRef<HTMLInputElement | null>(null);
   const [verificationZip, setVerificationZip] = useState<File | null>(null);
+  const [authorizeResult, setAuthorizeResult] = useState<AuthorizeResult | null>(null);
   const [extensionId, setExtensionId] = useState<string | false | null>(null);
   const [isAttestationIssued, setIsAttestationIssued] = useState<boolean>(false);
   const [verificationResult, setVerificationResult] = useState<string | null>(null);
@@ -85,13 +87,14 @@ const App: React.FC = () => {
   async function handleAuthorize() {
     setError(null);
     setPending(true);
-
+    setAuthorizeResult(null);
     try {
       if (!extensionClient) {
         throw new Error('Extension client not initialized');
       }
       const result = await extensionClient.authorize({ message: `Message ${Date.now()}` });
       console.log('authorize result: ', result)
+      setAuthorizeResult(result);
     } catch (error: any) {
       setError(error.message ?? "Something went wrong");
     } finally {
@@ -104,20 +107,26 @@ const App: React.FC = () => {
       setDocument(event.target.files[0]);
       const file = event.target.files[0];
 
-      // Todo: change hashing algorithm as needed!!!
+      // Read the file into an ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
-      const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      setDataDigest(hashHex);
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      // Create a Diger object with the raw data and the hash algorithm
+      const diger = new Diger({ raw: uint8Array, code: MtrDex.Blake3_256 });
+
+      // Get the qb64 encoded hash
+      const documentQb64 = diger.qb64;
+
+      // Update the state with the encoded hash
+      setDataDigest(documentQb64);
       setAttestCredResult(null);
       setIsAttestationIssued(false);
     }
   };
 
+
   const handleAttestCredential = async (ev: FormEvent) => {
     ev.preventDefault();
-    handleAuthorize()
     setError(null);
     setPending(true);
     setIsAttestationIssued(false);
@@ -127,6 +136,9 @@ const App: React.FC = () => {
       let credData = { digest: dataDigest, digestAlgo: 'SHA-256' };
       if (!extensionClient) {
         throw new Error('Extension client not initialized');
+      }
+      if (!authorizeResult) {
+        handleAuthorize()
       }
       const result = await extensionClient.createDataAttestationCredential({
         credData: credData,
@@ -214,11 +226,11 @@ const App: React.FC = () => {
     }
   };
 
-  
+
   const handleVerification = async () => {
     setIsVerifying(true);
     setVerificationResult(null);
-    
+
     if (!verificationZip) {
       setVerificationResult('No zip file uploaded');
       setIsVerifying(false);
@@ -239,7 +251,7 @@ const App: React.FC = () => {
     formData.append('file', verificationZip);
 
     try {
-      const response = await fetch(`${verifier_endpoint}${zipFileName}`, {
+      const response = await fetch(`${verifier_endpoint}`, {
         method: 'POST',
         body: formData,
       });
@@ -262,6 +274,13 @@ const App: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4 space-y-8">
+      <div>
+        {JSON.stringify(
+          {
+            ExtensionId: extensionId,
+          },
+        )}
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Document Signing</CardTitle>

@@ -139,6 +139,7 @@ const App: React.FC = () => {
       }
       if (!authorizeResult) {
         handleAuthorize()
+        throw new Error('Authorization required');
       }
       const result = await extensionClient.createDataAttestationCredential({
         credData: credData,
@@ -190,7 +191,6 @@ const App: React.FC = () => {
       if (!document) {
         throw new Error('No document uploaded');
       }
-      const credSAID = attestCredResult?.acdc?._ked?.d
       const zip = new JSZip();
       // name without suffix
       // ex. example.zip => example
@@ -203,7 +203,7 @@ const App: React.FC = () => {
       const url = window.URL.createObjectURL(content);
       const link = window.document.createElement('a');
       link.href = url;
-      link.download = `${documentName}-digest=${credSAID}.zip`;
+      link.download = `${documentName}-digest=${dataDigest}.zip`;
       link.click();
       window.URL.revokeObjectURL(url);
 

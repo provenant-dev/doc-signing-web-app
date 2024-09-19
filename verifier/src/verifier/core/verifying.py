@@ -86,7 +86,10 @@ class AttestationVerifierResource:
             # get said from the zip file name
             # ex. examplezip-digest=EA2bjWRaF3Hk0e1x1hV5SbD_01APHYOg2oeeRNr8HVq1.zip 
             # EA2bjWRaF3Hk0e1x1hV5SbD_01APHYOg2oeeRNr8HVq1
-            said = incoming_file.filename.split("-digest=")[1].split(".zip")[0]
+            # said = incoming_file.filename.split("-digest=")[1].split(".zip")[0]
+
+            # The digest is the hashed value of the document
+            digest = incoming_file.filename.split("-digest=")[1].split(".zip")[0]
             # Save uploaded file
             file_path = self._save_uploaded_zip(incoming_file)
             
@@ -98,17 +101,41 @@ class AttestationVerifierResource:
                 rep.status = falcon.HTTP_BAD_REQUEST
                 rep.data = json.dumps(dict(msg="The ZIP file is not valid")).encode("utf-8")
                 return
-
-            if not self._verify_credential(files["cesr_file"], said, rep):
-                rep.status = falcon.HTTP_BAD_REQUEST
-                rep.data = json.dumps(dict(msg=f"Credential {said} was not found")).encode("utf-8")
-                return
             
-            saider = coring.Saider(qb64=said)
+            # if not self._verify_credential(files["cesr_file"], said, rep):
+            #     rep.status = falcon.HTTP_BAD_REQUEST
+            #     rep.data = json.dumps(dict(msg=f"Credential {said} was not found")).encode("utf-8")
+            #     return
+
+            with open(files["cesr_file"], "rb") as f:
+                ims = f.read()
+
+            self.vry.cues.clear()
+
+            parsing.Parser().parse(ims=ims, kvy=self.hby.kvy, tvy=self.tvy, vry=self.vry)
+
+            found = False
+
+            while self.vry.cues:
+                msg = self.vry.cues.popleft()
+                if "creder" in msg:
+                    creder = msg["creder"]
+                    if creder.sad['a'].get('digest') == digest:
+                        found = True
+
+            if not found:
+                rep.status = falcon.HTTP_BAD_REQUEST
+                rep.data = json.dumps(dict(msg=f"Credential {digest} was not found {creder.sad['a']} : {digest}")).encode("utf-8")
+                return
+
+            # # Clean up the uploaded CESR file
+            os.remove(files["cesr_file"])
+            
+            saider = coring.Saider(qb64=creder.said)
             now = coring.Dater()
             self.vdb.iss.pin(keys=(saider.qb64,), val=now)     
 
-            if not self._verify_document_hash(saider, files["document_file"], rep, said):
+            if not self._verify_document_hash(saider, files["document_file"], rep):
                 rep.status = falcon.HTTP_BAD_REQUEST
                 rep.data = json.dumps(dict(msg=f"Document hash does not match digest")).encode("utf-8")
                 return            
@@ -121,6 +148,7 @@ class AttestationVerifierResource:
             rep.status = falcon.HTTP_BAD_REQUEST
             rep.data = json.dumps(dict(msg=str(e))).encode("utf-8")
 
+# will be removed
     def _verify_credential(self, file_path, said, rep):
         """ Verify the credential by SAID """
         try:
@@ -145,7 +173,7 @@ class AttestationVerifierResource:
             os.remove(file_path)
             raise falcon.HTTPBadRequest("Credential Verification Error", str(e))
         
-    def _verify_document_hash(self, saider, document_path, rep, said):
+    def _verify_document_hash(self, saider, document_path, rep):
         """ Verify the hash of the uploaded document against the credential digest """
         try:
             with open(document_path, "rb") as f:

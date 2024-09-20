@@ -274,13 +274,6 @@ const App: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4 space-y-8">
-      <div>
-        {JSON.stringify(
-          {
-            ExtensionId: extensionId,
-          },
-        )}
-      </div>
       <Card>
         <CardHeader>
           <CardTitle>Document Signing</CardTitle>
@@ -356,10 +349,10 @@ const App: React.FC = () => {
             </Button>
             {verificationResult && (
               <div
-                className={`p-4 rounded-md ${verificationResult.includes('successful') ? 'bg-green-100' : 'bg-red-100'
+                className={`p-4 rounded-md ${verificationResult.includes("the document is a valid") ? 'bg-green-100' : 'bg-red-100'
                   }`}
               >
-                {verificationResult.includes('successful') ? (
+                {verificationResult.includes("the document is a valid") ? (
                   <CheckCircle className="inline-block mr-2 text-green-600" size={16} />
                 ) : (
                   <XCircle className="inline-block mr-2 text-red-600" size={16} />

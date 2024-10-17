@@ -86,7 +86,6 @@ def launch(args):
     obl = oobiing.Oobiery(hby=hby)
 
     reger = viring.Reger(name=hby.name, temp=hby.temp)
-    vdb = basing.VerifierBaser(name=hby.name)
 
     app = falcon.App(
         middleware=[falcon.CORSMiddleware(
@@ -99,7 +98,7 @@ def launch(args):
     server = http.Server(port=httpPort, app=app)
     httpServerDoer = http.ServerDoer(server=server)
 
-    verifying.setup(app, hby=hby, vdb=vdb, reger=reger)
+    verifying.setup(app, hby=hby, reger=reger)
 
     doers = obl.doers + [hbyDoer, httpServerDoer]
 

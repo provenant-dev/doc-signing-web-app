@@ -9,13 +9,12 @@ from keri.core import coring, parsing
 from keri.core.coring import MtrDex, Diger
 
 
-def setup(app, hby, vdb, reger, local=False):
+def setup(app, hby, reger, local=False):
     """ Set up verifying endpoints to process vLEI credential verifications
 
     Parameters:
         app (App): Falcon app to register endpoints against
         hby (Habery): Database environment for exposed KERI AIDs
-        vdb (VerifierBaser): Database environment for the verifier
         reger (Reger): Database environment for credential registries
 
     """
@@ -23,16 +22,15 @@ def setup(app, hby, vdb, reger, local=False):
     tvy = eventing.Tevery(reger=reger, db=hby.db, local=local)
     vry = verifying.Verifier(hby=hby, reger=reger)
 
-    loadEnds(app, hby, vdb, tvy, vry)
+    loadEnds(app, hby, tvy, vry)
 
 
-def loadEnds(app, hby, vdb, tvy, vry):
+def loadEnds(app, hby, tvy, vry):
     """ Load and map endpoints to process vLEI credential verifications
 
     Parameters:
         app (App): Falcon app to register endpoints against
         hby (Habery): Database environment for exposed KERI AIDs
-        vdb (VerifierBaser): Verifier database environment
         tvy (Tevery): transaction event log event processor
         vry (Verifier): credential verification processor
 
@@ -43,7 +41,7 @@ def loadEnds(app, hby, vdb, tvy, vry):
     # Ensure the directory exists
     os.makedirs(upload_dir, exist_ok=True)
 
-    verDocEnd = AttestationVerifierResource(hby, vdb, tvy, vry, upload_dir)
+    verDocEnd = AttestationVerifierResource(hby, tvy, vry, upload_dir)
     app.add_route("/verify-attestation", verDocEnd)
     healthEnd = HealthEndpoint()
     app.add_route("/health", healthEnd)
@@ -58,18 +56,16 @@ class AttestationVerifierResource:
 
     """
 
-    def __init__(self, hby, vdb, tvy, vry, upload_dir):
+    def __init__(self, hby, tvy, vry, upload_dir):
         """ Create credential presentation resource endpoint instance
 
         Parameters:
             hby (Habery): Database environment for exposed KERI AIDs
-            vdb (VerifierBaser): Verifier database environment
             tvy (Tevery): transaction event log event processor
             vry (Verifier): credential verification event processor
 
         """
         self.hby = hby
-        self.vdb = vdb
         self.tvy = tvy
         self.vry = vry
         self.upload_dir = upload_dir
@@ -133,7 +129,6 @@ class AttestationVerifierResource:
             
             saider = coring.Saider(qb64=creder.said)
             now = coring.Dater()
-            self.vdb.iss.pin(keys=(saider.qb64,), val=now)     
 
             if not self._verify_document_hash(saider, files["document_file"], rep):
                 rep.status = falcon.HTTP_BAD_REQUEST

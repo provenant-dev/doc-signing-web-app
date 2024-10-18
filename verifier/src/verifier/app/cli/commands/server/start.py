@@ -14,7 +14,7 @@ from keri.app import keeping, configing, habbing, oobiing
 from keri.app.cli.common import existing
 from keri.vdr import viring
 import logging
-from verifier.core import verifying, basing
+from verifier.core import verifying
 from falcon_multipart.middleware import MultipartMiddleware
 
 parser = argparse.ArgumentParser(description='Launch vLEI Verification Service')

@@ -131,9 +131,9 @@ const App: React.FC = () => {
     setPending(true);
     setIsAttestationIssued(false);
     try {
-      let schemaSaid = 'ENDcMNUZjag27T_GTxiCmB2kYstg_kqipqz39906E_FD';
+      let schemaSaid = 'EB4AsU1rKGOAf7m4MS324XhanXq8G01sR_bUdUV2TULm';
       // Todo: remove digestAlgo 
-      let credData = { digest: dataDigest, digestAlgo: 'SHA-256' };
+      let credData = { digest: dataDigest };
       if (!extensionClient) {
         throw new Error('Extension client not initialized');
       }
